@@ -1,6 +1,7 @@
 import pyspark
+from pyspark.sql import Window, WindowSpec
 import pyspark.sql.types as t
-from pyspark.sql.functions import col
+from pyspark.sql.functions import col, dense_rank, split, explode
 
 from workers.BaseTSV import BaseTSV
 from models import *
@@ -47,24 +48,69 @@ class TitleBasicsWorker(BaseTSV):
                 .limit(num=limit)
         )
     
-    def get_titles_with_longest_runtime(self,
-                                        limit: int = 25):
-        
+    def get_titles_of_each_type_ranked_by_runtime(self): 
+        runtime_rank_column = 'runtimeRank'
+
+        window_spec: WindowSpec = (
+            Window
+                .partitionBy(
+                    TitleBasicsModel.titleType
+                )
+                .orderBy(
+                    col(TitleBasicsModel.runtimeMinutes)
+                        .desc()
+                )
+        )
+
         return (
             self.tsv_df
                 .filter(condition=(
                     (col(TitleBasicsModel.primaryTitle).isNotNull()) &
                     (col(TitleBasicsModel.runtimeMinutes).isNotNull())
                 ))
-                .orderBy(
-                    col(TitleBasicsModel.runtimeMinutes)
-                        .desc()
-                )
                 .select([
                     TitleBasicsModel.tconst,
                     TitleBasicsModel.titleType,
                     TitleBasicsModel.primaryTitle,
                     TitleBasicsModel.runtimeMinutes
                 ])
-                .limit(num=limit)
+                .withColumn(runtime_rank_column, dense_rank().over(window_spec))
+        )
+    
+    def get_titles_of_each_genre_ranked_by_most_reviewed(self,
+                                                         title_ratings_data: BaseTSV
+                                                         ):
+        genre_array_column = 'genre_arr'
+        genre_separated_column = 'genre_single'
+        votes_rank_column = 'votesRank'
+
+        window_spec: WindowSpec = (
+            Window
+                .partitionBy(
+                    genre_separated_column
+                )
+                .orderBy(
+                    col(TitleRatingsModel.numberVotes)
+                        .desc()
+                )
+        )
+
+        return (
+            self.tsv_df
+                .withColumn(genre_array_column, split(col(TitleBasicsModel.genres), ',').cast(t.ArrayType(t.StringType())))
+                .select('*', explode(col(genre_array_column)).alias(genre_separated_column))
+                .drop(genre_array_column)
+                .join(
+                    other=title_ratings_data.tsv_df,
+                    on=TitleBasicsModel.tconst,
+                    how='inner'
+                )
+                .withColumn(votes_rank_column, dense_rank().over(window_spec))
+                .select([
+                    genre_separated_column,
+                    TitleBasicsModel.tconst,
+                    TitleBasicsModel.primaryTitle,
+                    TitleRatingsModel.numberVotes,
+                    votes_rank_column
+                ])
         )
