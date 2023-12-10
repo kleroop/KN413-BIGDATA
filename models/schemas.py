@@ -18,8 +18,7 @@ title_akas_schema = t.StructType(fields=[
     t.StructField(name=TitleAkasModel.language, dataType=t.StringType(), nullable=False),
     t.StructField(name=TitleAkasModel.types, dataType=t.StringType(), nullable=False),
     t.StructField(name=TitleAkasModel.attributes, dataType=t.StringType(), nullable=False),
-    t.StructField(name=TitleAkasModel.isOriginalTitle, dataType=t.IntegerType(), nullable=False),
-
+    t.StructField(name=TitleAkasModel.isOriginalTitle, dataType=t.IntegerType(), nullable=False)
 ])
 
 title_episode_schema = t.StructType(fields=[
@@ -41,13 +40,13 @@ title_principals_schema = t.StructType(fields=[
     t.StructField(name=TitlePrincipalsModel.nconst, dataType=t.StringType(), nullable=False),
     t.StructField(name=TitlePrincipalsModel.category, dataType=t.StringType(), nullable=False),
     t.StructField(name=TitlePrincipalsModel.job, dataType=t.StringType(), nullable=True),
-    t.StructField(name=TitlePrincipalsModel.characters, dataType=t.StringType(), nullable=True),
+    t.StructField(name=TitlePrincipalsModel.characters, dataType=t.StringType(), nullable=True)
 ])
 
 title_crew_schema = t.StructType(fields=[
     t.StructField(name=TitleCrewModel.tconst, dataType=t.StringType(), nullable=False),
     t.StructField(name=TitleCrewModel.directors, dataType=t.StringType(), nullable=False),
-    t.StructField(name=TitleCrewModel.writers, dataType=t.StringType(), nullable=True),
+    t.StructField(name=TitleCrewModel.writers, dataType=t.StringType(), nullable=True)
 ])
 
 title_basics_schema = t.StructType(fields=[
