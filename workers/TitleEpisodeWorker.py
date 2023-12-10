@@ -1,5 +1,5 @@
 import pyspark
-import pyspark.sql.types as t
+from pyspark.sql import DataFrame
 from pyspark.sql.functions import col
 
 from workers.BaseTSV import BaseTSV
@@ -16,7 +16,22 @@ class TitleEpisodeWorker(BaseTSV):
     def get_series_sorted_by_episodes_number(self,
                                              title_basics_data: BaseTSV,
                                              limit: int = 10
-                                             ):
+                                             ) -> DataFrame:
+        """
+        Get series sorted by the number of episodes.
+
+        Parameters:
+        -----------
+        - title_basics_data (BaseTSV): The TSV data containing information about title basics.
+        - limit (int): The maximum number of results to return (default is 10).
+
+        Returns:
+        --------
+        - pyspark.sql.DataFrame: A PySpark DataFrame containing series with columns 'tconst', 'primaryTitle',
+                    and 'numEpisodes', sorted by the number of episodes.
+        """
+
+        # Define column names for intermediate steps
         episodeCount = 'count'
         episodeCount_alias = 'numEpisodes'
     
