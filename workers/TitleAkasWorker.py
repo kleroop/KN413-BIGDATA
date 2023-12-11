@@ -1,5 +1,5 @@
 import pyspark
-import pyspark.sql.types as t
+from pyspark.sql import DataFrame
 from pyspark.sql.functions import col
 
 from workers.BaseTSV import BaseTSV
@@ -15,8 +15,23 @@ class TitleAkasWorker(BaseTSV):
 
     def get_titles_sorted_by_most_regions_aired(self,
                                                 title_basics_data: BaseTSV,
-                                                limit: int = 10):
+                                                limit: int = 10
+                                                ) -> DataFrame:
+        """
+        Get titles sorted by the most regions aired.
+
+        Parameters:
+        -----------
+        - title_basics_data (BaseTSV): The TSV data containing information about title basics.
+        - limit (int): The maximum number of results to return (default is 10).
+
+        Returns:
+        --------
+        - pyspark.sql.DataFrame: A PySpark DataFrame containing titles with columns 'tconst', 'primaryTitle',
+                    and 'numRegions', sorted by the number of regions aired.
+        """
         
+        # Define column names for intermediate steps
         regionCounter = 'count'
         regionCounter_alias = 'numRegions'
 

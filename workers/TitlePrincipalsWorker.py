@@ -1,5 +1,5 @@
 import pyspark
-import pyspark.sql.types as t
+from pyspark.sql import DataFrame
 from pyspark.sql.functions import col
 
 from workers.BaseTSV import BaseTSV
@@ -16,7 +16,22 @@ class TitlePrincipalsWorker(BaseTSV):
     def get_titles_sorted_by_composers_number(self,
                                               title_basics_data: BaseTSV,
                                               limit: int = 10
-                                              ):
+                                              ) -> DataFrame:
+        """
+        Get titles sorted by the number of composers associated with them.
+
+        Parameters:
+        -----------
+        - title_basics_data (BaseTSV): The TSV data containing information about title basics.
+        - limit (int): The maximum number of results to return (default is 10).
+
+        Returns:
+        --------
+        - pyspark.sql.DataFrame: A PySpark DataFrame containing titles with columns 'tconst', 'primaryTitle',
+                    and 'numComposers', sorted by the number of composers.
+        """
+
+        # Define column names for intermediate steps
         composerCount = 'count'
         composerCount_alias = 'numComposers'
 
