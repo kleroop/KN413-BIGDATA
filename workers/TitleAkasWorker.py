@@ -64,7 +64,12 @@ class TitleAkasWorker(BaseTSV):
                 .limit(num=limit)
         )
 
-    def get_number_of_titles_in_region(self, region):
+    def get_number_of_titles_in_region(self, region: str) -> DataFrame:
+        """
+        Get number of titles in specific region
+        :param region: Region to search for
+        :return:
+        """
         return (
             self.tsv_df.groupby(TitleAkasModel.region)
             .count()

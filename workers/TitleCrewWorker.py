@@ -14,24 +14,25 @@ class TitleCrewWorker(BaseTSV):
                  ):
         super().__init__(spark_session, path, title_crew_schema)
 
-    def get_top_directors_by_titles_directed(self,
-                                                  name_basics: BaseTSV):
+    def get_top_directors_by_titles_directed(self, name_basics: BaseTSV, limit=20) -> DataFrame:
         name_basics_df: DataFrame = name_basics.tsv_df
-        exploded_df = self.tsv_df.filter(col("directors").isNotNull())
-        # Explode the genres column to have one row per genre
-
-        # Convert the genre column to an array of strings
-        exploded_df = exploded_df.withColumn("directors",
-                                             split(col("directors"), ",").cast(t.ArrayType(t.StringType())))
-
-        # Explode the array of genres to have one row per genre
-        exploded_df = exploded_df.select("*", explode(col("directors")).alias("nconst")).drop("directors")
-
-        exploded_df = exploded_df.groupBy("nconst").count().withColumnRenamed("count", "titlesDirected")
-
-        exploded_df = name_basics_df.join(exploded_df, "nconst", "right")
-
-
-        exploded_df = exploded_df.select(["primaryName", "titlesDirected"]).orderBy(col("titlesDirected").desc())
-
-        return exploded_df
+        return (
+            self.tsv_df
+            .filter(col(TitleCrewModel.directors).isNotNull())
+            .withColumn(
+                TitleCrewModel.directors,
+                split(col(TitleCrewModel.directors), ",")
+                .cast(
+                    t.ArrayType(
+                        t.StringType()
+                    )
+                )
+            )
+            .select("*", explode(col(TitleCrewModel.directors)).alias(NameBasicsModel.nconst)).drop(
+                TitleCrewModel.directors)
+            .groupBy(NameBasicsModel.nconst).count().withColumnRenamed("count", "titlesDirected")
+            .join(name_basics_df, NameBasicsModel.nconst, "left")
+            .orderBy(col("titlesDirected").desc())
+            .select([NameBasicsModel.primaryName, "titlesDirected"])
+            .limit(limit)
+        )

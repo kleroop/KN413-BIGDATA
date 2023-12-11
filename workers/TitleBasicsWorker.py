@@ -155,7 +155,14 @@ class TitleBasicsWorker(BaseTSV):
                 ])
         )
 
-    def get_titles_with_rating_by_genre(self, title_ratings_tsv: BaseTSV, genre, limit=10):
+    def get_titles_with_rating_by_genre(self, title_ratings_tsv: BaseTSV, genre: str, limit: int = 10) -> DataFrame:
+        """
+        Get titles of specific genre sorted by average rating
+        :param title_ratings_tsv: title rating
+        :param genre: Desired genre
+        :param limit: Limit lookup data
+        :return:
+        """
         # Filter by the specified genre
         title_ratings_df = title_ratings_tsv.tsv_df
         return (
@@ -170,15 +177,21 @@ class TitleBasicsWorker(BaseTSV):
                     )
                 )
             )
-            .select("*", explode(col(TitleBasicsModel.genres)).alias("genre"))
-            .filter(condition=col(TitleBasicsModel.genres) == genre)
+            .select("*", explode(col(TitleBasicsModel.genres)).alias("genre")).drop(TitleBasicsModel.genres)
+            .filter(condition=col("genre") == genre)
             .join(title_ratings_df, TitleBasicsModel.tconst)
             .orderBy(col(TitleRatingsModel.averageRating).desc())
             .select(TitleBasicsModel.primaryTitle, TitleRatingsModel.averageRating, "genre")
             .limit(limit)
         )
 
-    def get_titles_by_genre_sorted_by_startYear(self, genre):
+    def get_titles_by_genre_sorted_by_startYear(self, genre: str, limit=20) -> DataFrame:
+        """
+        Get titles of specific genre aired in start year
+        :param genre: Genre to search for
+        :param limit:
+        :return:
+        """
         # Filter by the specified genre
         return (
             self.tsv_df
@@ -189,11 +202,17 @@ class TitleBasicsWorker(BaseTSV):
                 col(TitleBasicsModel.startYear).isNotNull()
             ).select(TitleBasicsModel.primaryTitle, TitleBasicsModel.startYear)
             .orderBy(
-                col(TitleBasicsModel.startYear).asc()
-            )
+                col(TitleBasicsModel.startYear).desc()
+            ).limit(limit)
         )
 
-    def get_statistics_by_genres(self, title_ratings_tsv):
+    def get_statistics_by_genres(self, title_ratings_tsv: BaseTSV, limit=20) -> DataFrame:
+        """
+        Get statistics for all genres: average score, number of titles, min score, max score
+        :param title_ratings_tsv:
+        :param limit:
+        :return:
+        """
         windowSpec: WindowSpec = Window.partitionBy("genre").orderBy(TitleBasicsModel.startYear)
 
         title_ratings_df = title_ratings_tsv.tsv_df
@@ -228,9 +247,15 @@ class TitleBasicsWorker(BaseTSV):
                 max(col(TitleRatingsModel.averageRating)).over(windowSpecAgg))
             .filter(col("row") == 1)
             .select("genre", "avg", "count", "min", "max")
+            .limit(limit)
         )
 
-    def count_titles_by_years(self):
+    def count_titles_by_years(self, limit=20) -> DataFrame:
+        """
+        Return a list of years with accordance to titles released
+        :param limit:
+        :return:
+        """
         return (
             self.tsv_df.filter(
                 col(TitleBasicsModel.startYear).isNotNull()
@@ -238,5 +263,5 @@ class TitleBasicsWorker(BaseTSV):
             .count().withColumnRenamed("count", "titlesPerYear")
             .orderBy(
                 col(TitleBasicsModel.startYear).desc()
-            )
+            ).limit(limit)
         )
