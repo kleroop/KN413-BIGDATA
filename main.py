@@ -6,6 +6,9 @@ from pyspark.sql.functions import col
 from workers import *
 from models import *
 
+def write_csv(df, name):
+    df.write.csv(name)
+
 spark_session = (SparkSession.builder
                  .master('local')
                  .appName('test app')
@@ -43,3 +46,21 @@ titles_episode.get_series_sorted_by_episodes_number(title_basics_data=titles_bas
 
 print('get_titles_sorted_by_composers_number')
 titles_principals.get_titles_sorted_by_composers_number(title_basics_data=titles_basics, limit=20).show()
+
+print('count_titles_by_years')
+titles_basics.count_titles_by_years().show()
+
+print("get_titles_with_rating_by_genre")
+titles_basics.get_titles_with_rating_by_genre(titles_ratings, "Action").show()
+
+print("get_titles_by_genre_sorted_by_startYear")
+titles_basics.get_titles_by_genre_sorted_by_startYear("Action").show()
+
+print("get_statistics_by_genres")
+titles_basics.get_statistics_by_genres(titles_ratings).show()
+
+print("get_number_of_titles_in_region")
+titles_akas.get_number_of_titles_in_region("UA").show()
+
+print("get_top_directors_by_titles_directed")
+titles_crew.get_top_directors_by_titles_directed(name_basics).show()

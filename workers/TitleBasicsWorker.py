@@ -2,6 +2,10 @@ import pyspark
 from pyspark.sql import Window, WindowSpec, DataFrame
 import pyspark.sql.types as t
 from pyspark.sql.functions import col, dense_rank, split, explode
+from pyspark.sql.functions import col, split, explode, row_number
+
+from pyspark.sql import DataFrame, WindowSpec, Window
+from pyspark.sql.functions import count, avg, min, max
 
 from workers.BaseTSV import BaseTSV
 from models import *
@@ -61,7 +65,7 @@ class TitleBasicsWorker(BaseTSV):
                 .limit(num=limit)
         )
     
-    def get_titles_of_each_type_ranked_by_runtime(self) -> DataFrame: 
+    def get_titles_of_each_type_ranked_by_runtime(self) -> DataFrame:
         """
         Get titles of each type ranked by runtime.
 
@@ -100,7 +104,7 @@ class TitleBasicsWorker(BaseTSV):
                 ])
                 .withColumn(runtime_rank_column, dense_rank().over(window_spec))
         )
-    
+
     def get_titles_of_each_genre_ranked_by_most_reviewed(self, title_ratings_data: BaseTSV) -> DataFrame:
         """
         Get titles of each genre ranked by the most reviewed (highest number of votes).
@@ -149,4 +153,90 @@ class TitleBasicsWorker(BaseTSV):
                     TitleRatingsModel.numberVotes,
                     votes_rank_column
                 ])
+        )
+
+    def get_titles_with_rating_by_genre(self, title_ratings_tsv: BaseTSV, genre, limit=10):
+        # Filter by the specified genre
+        title_ratings_df = title_ratings_tsv.tsv_df
+        return (
+            self.tsv_df.filter(
+                col(TitleBasicsModel.genres).contains(genre)
+            )
+            .withColumn(
+                TitleBasicsModel.genres,
+                split(col(TitleBasicsModel.genres), ",").cast(
+                    t.ArrayType(
+                        t.StringType()
+                    )
+                )
+            )
+            .select("*", explode(col(TitleBasicsModel.genres)).alias("genre"))
+            .filter(condition=col(TitleBasicsModel.genres) == genre)
+            .join(title_ratings_df, TitleBasicsModel.tconst)
+            .orderBy(col(TitleRatingsModel.averageRating).desc())
+            .select(TitleBasicsModel.primaryTitle, TitleRatingsModel.averageRating, "genre")
+            .limit(limit)
+        )
+
+    def get_titles_by_genre_sorted_by_startYear(self, genre):
+        # Filter by the specified genre
+        return (
+            self.tsv_df
+            .filter(
+                col(TitleBasicsModel.genres).contains(genre)
+            )
+            .filter(
+                col(TitleBasicsModel.startYear).isNotNull()
+            ).select(TitleBasicsModel.primaryTitle, TitleBasicsModel.startYear)
+            .orderBy(
+                col(TitleBasicsModel.startYear).asc()
+            )
+        )
+
+    def get_statistics_by_genres(self, title_ratings_tsv):
+        windowSpec: WindowSpec = Window.partitionBy("genre").orderBy(TitleBasicsModel.startYear)
+
+        title_ratings_df = title_ratings_tsv.tsv_df
+
+        windowSpecAgg = Window.partitionBy("genre")
+
+        return (
+            self.tsv_df.join(title_ratings_df, TitleBasicsModel.tconst)
+            .withColumn(
+                TitleBasicsModel.genres,
+
+                split(col(TitleBasicsModel.genres), ",")
+                .cast(
+                    t.ArrayType(t.StringType())
+                )
+            )
+            .select("*",
+                    explode(col(TitleBasicsModel.genres)).alias("genre")
+                    )
+            .withColumn("row", row_number().over(windowSpec))
+            .withColumn(
+                "avg", avg(
+                    col(TitleRatingsModel.averageRating))
+                .over(windowSpecAgg)
+            )
+            .withColumn("count", count(col("*")).over(windowSpecAgg))
+            .withColumn(
+                "min",
+                min(col(TitleRatingsModel.averageRating)).over(windowSpecAgg))
+            .withColumn(
+                "max",
+                max(col(TitleRatingsModel.averageRating)).over(windowSpecAgg))
+            .filter(col("row") == 1)
+            .select("genre", "avg", "count", "min", "max")
+        )
+
+    def count_titles_by_years(self):
+        return (
+            self.tsv_df.filter(
+                col(TitleBasicsModel.startYear).isNotNull()
+            ).groupBy(TitleBasicsModel.startYear)
+            .count().withColumnRenamed("count", "titlesPerYear")
+            .orderBy(
+                col(TitleBasicsModel.startYear).desc()
+            )
         )
