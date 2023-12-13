@@ -1,8 +1,14 @@
 # KN413-BIGDATA
-### Mamchur Mykhailo & Vavryk Roman
-To launch:
+# Developers:
+- Mamchur Mykhailo 
+- Vavryk Roman
+
+Dataset: [imdb](https://developer.imdb.com/non-commercial-datasets)
+
+To launch the image locally: 
 ```shell
 docker-compose up --build
 ```
 
 Resulting files can be found in `csv` folder
+

@@ -7,7 +7,7 @@ from workers import *
 from models import *
 
 def write_csv(df, name):
-    df.write.csv("csv/" + name)
+    df.write.csv("/csv/" + name, encoding='utf-8')
 
 spark_session = (SparkSession.builder
                  .master('local')
@@ -42,7 +42,7 @@ each_genre_by_most_reviewed_df.show()
 write_csv(each_genre_by_most_reviewed_df, "each_genre_by_most_reviewed_df.csv")
 
 print('get_titles_of_each_genre_ranked_by_most_reviewed:genre=History')
-each_genre_by_most_reviewed_df.filter(col('genre_single') == 'History').show()
+each_genre_by_most_reviewed_df.filter(col('genre_separated') == 'History').show()
 
 print('get_titles_sorted_by_most_regions_aired')
 most_regions_aired = titles_akas.get_titles_sorted_by_most_regions_aired(title_basics_data=titles_basics, limit=20)
