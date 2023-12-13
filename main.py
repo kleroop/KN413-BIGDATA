@@ -7,7 +7,7 @@ from workers import *
 from models import *
 
 def write_csv(df, name):
-    df.write.csv("/csv/" + name, encoding='utf-8')
+    df.write.csv("/csv/" + name, encoding='utf-8', mode="overwrite")
 
 spark_session = (SparkSession.builder
                  .master('local')
